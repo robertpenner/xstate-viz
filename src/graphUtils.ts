@@ -355,23 +355,38 @@ export async function getElkGraph(
     const lca = relativeNodeEdgeMap[1].get(edge.id);
     const elkLca = lca && stateNodeToElkNodeMap.get(lca)!;
 
+    const firstLabelX = edge.labels?.[0].x || 0;
+    const firstLabelY = edge.labels?.[0].y || 0;
+    let offsetX = elkLca?.absolutePosition.x || 0;
+    let offsetY = elkLca?.absolutePosition.y || 0;
+
+    // A parent -> child transition needs this extra shift,
+    // otherwise it will align with the parent's parent instead
+    const isParentToChild = edge.edge.target.parent === edge.edge.source;
+    if (isParentToChild) {
+      offsetX += firstLabelX;
+      offsetY += firstLabelY;
+    }
+    edge.edge.label.x = firstLabelX + offsetX;
+    edge.edge.label.y = firstLabelY + offsetY;
+
     const translatedSections: ElkEdgeSection[] = elkLca
       ? edge.sections.map((section) => {
           return {
             ...section,
             startPoint: {
-              x: section.startPoint.x + elkLca.absolutePosition.x,
-              y: section.startPoint.y + elkLca.absolutePosition.y,
+              x: section.startPoint.x + offsetX,
+              y: section.startPoint.y + offsetY,
             },
             endPoint: {
-              x: section.endPoint.x + elkLca.absolutePosition.x,
-              y: section.endPoint.y + elkLca.absolutePosition.y,
+              x: section.endPoint.x + offsetX,
+              y: section.endPoint.y + offsetY,
             },
             bendPoints:
               section.bendPoints?.map((bendPoint) => {
                 return {
-                  x: bendPoint.x + elkLca.absolutePosition.x,
-                  y: bendPoint.y + elkLca.absolutePosition.y,
+                  x: bendPoint.x + offsetX,
+                  y: bendPoint.y + offsetY,
                 };
               }) ?? [],
           };
